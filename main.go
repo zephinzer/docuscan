@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"code.sajari.com/docconv"
@@ -61,4 +62,28 @@ func main() {
 	}
 
 	log.Printf("%s\n", text)
+	log.Printf("%v\n", validate(text))
 }
+
+type Validation struct {
+	ContainsNRIC  bool
+	ContainsEmail bool
+}
+
+func validate(text string) Validation {
+	containsNric, err := regexp.Match(`[5STFG]\d{7}[2A-Z]`, []byte(text))
+	if err != nil {
+		panic(err)
+	}
+
+	containsEmail, err := regexp.Match(`[a-zA-Z0-9.!#$%&’*+/=?^_{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*`, []byte(text))
+	if err != nil {
+		panic(err)
+	}
+
+	return Validation{
+		ContainsNRIC:  containsNric,
+		ContainsEmail: containsEmail,
+	}
+}
+
