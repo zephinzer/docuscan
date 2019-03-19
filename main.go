@@ -14,6 +14,7 @@ import (
 
 	"code.sajari.com/docconv"
 	"github.com/otiai10/gosseract"
+	"gopkg.in/jdkato/prose.v2"
 )
 
 func main() {
@@ -54,36 +55,78 @@ func main() {
 			panic(err)
 		}
 	} else {
-		res, err := docconv.ConvertPath("example.pdf")
+		res, err := docconv.ConvertPath(filePath)
 		if err != nil {
 			panic(err)
 		}
-		text = fmt.Sprintf("%s\n", res)
+		text = fmt.Sprintf("%s\n", res.Body)
 	}
 
-	log.Printf("%s\n", text)
-	log.Printf("%v\n", validate(text))
+	text = strings.ToLower(text)
+
+	log.Printf("\n\n--- document text follows ---\n%s\n--- end of document text ---\n\n", text)
+	log.Printf("%s\n", validate(text).String())
+	proseParse(text)
+}
+
+func proseParse(text string) {
+	doc, err := prose.NewDocument(text)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("\n\n--- start of tokens ---\n")
+	// Iterate over the doc's tokens:
+	for _, tok := range doc.Tokens() {
+		log.Println(tok.Text, tok.Tag, tok.Label)
+	}
+	log.Printf("\n--- end of tokens ---\n\n")
+
+	log.Printf("\n\n--- start of entities ---\n")
+	for _, ent := range doc.Entities() {
+		log.Println(ent.Text, ent.Label)
+	}
+	log.Printf("\n--- end of entities ---\n\n")
 }
 
 type Validation struct {
 	ContainsNRIC  bool
 	ContainsEmail bool
+	ContainsPhone bool
 }
 
-func validate(text string) Validation {
-	containsNric, err := regexp.Match(`[5STFG]\d{7}[2A-Z]`, []byte(text))
+func (v *Validation) String() string {
+	return fmt.Sprintf(
+		"\n"+
+			"contains nric:  %v\n"+
+			"contains email: %v\n"+
+			"contains phone: %v\n",
+		v.ContainsNRIC,
+		v.ContainsEmail,
+		v.ContainsPhone,
+	)
+}
+
+func validate(text string) *Validation {
+	toValidate := []byte(text)
+	containsNric, err := regexp.Match(`[5stfg]\d{7}[2a-z]`, toValidate)
 	if err != nil {
 		panic(err)
 	}
 
-	containsEmail, err := regexp.Match(`[a-zA-Z0-9.!#$%&’*+/=?^_{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*`, []byte(text))
+	containsEmail, err := regexp.Match(`[a-zA-Z0-9.!#$%&’*+/=?^_{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*`, toValidate)
 	if err != nil {
 		panic(err)
 	}
 
-	return Validation{
+	containsPhone, err := regexp.Match(`(\+[0-9]+)*[\s\-]*[689]\d{3}[\s\-]*\d{4}`, toValidate)
+	if err != nil {
+		panic(err)
+	}
+
+	return &Validation{
 		ContainsNRIC:  containsNric,
 		ContainsEmail: containsEmail,
+		ContainsPhone: containsPhone,
 	}
 }
-

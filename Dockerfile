@@ -1,6 +1,6 @@
 FROM golang:1.12.0-alpine3.9 AS build
 RUN apk update --no-cache && apk upgrade --no-cache
-RUN apk add --no-cache bash curl git g++ jq leptonica poppler-utils tesseract-ocr-dev
+RUN apk add --no-cache bash curl git g++ jq leptonica poppler-utils tesseract-ocr-dev wv
 # c
 RUN wget -q -P /usr/share/tessdata https://github.com/tesseract-ocr/tessdata/raw/master/chi_sim.traineddata
 RUN wget -q -P /usr/share/tessdata https://github.com/tesseract-ocr/tessdata/raw/master/chi_tra.traineddata
